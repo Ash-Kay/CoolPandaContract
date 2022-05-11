@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 import "./utils/Ownable.sol";
+import "hardhat/console.sol";
 
 contract MarketStorage is Ownable {
     enum MarketState {
         BiddingOpen, // After specific timestamp
-        BiddingClosed, // After specific timestamp
-        Halted // Incase of emergency
+        BiddingClosed, // After specific timestamp, can withdraw
+        Halted // Incase of emergency, no transactions
     }
 
     enum MarketType {
         Binary,
-        MultipleChoice // Only one correct
+        MultipleChoice // Multiple choice but Only one correct
     }
 
     struct Bidder {
@@ -38,7 +39,11 @@ contract MarketStorage is Ownable {
     }
 
     mapping(uint256 => mapping(address => Bidder)) public bidders; //marketId -> bidders
-
+    mapping(uint256 => mapping(uint128 => address[]))
+        public biddersAddressByOption; //marketId -> option -> bidderaddress
+    mapping(uint256 => mapping(uint128 => uint256))
+        public biddersTotalBalanceByOption; //marketId -> option -> total amount deposit for that option
+    mapping(address => uint256) public redeemableAmount; //bidderaddress => amount
     // mapping(uint256 => mapping(int128 => Bidder)) public bidderMap;
 
     // mapping(uint256 => address[]) public winnersAddress; // marketId->list winners
@@ -102,6 +107,10 @@ contract MarketStorage is Ownable {
         //ADD CHECKS like is _optionSelected in range
         Market memory market = markets[_marketId];
 
+        if (marketStates[_marketId] != MarketState.BiddingOpen) {
+            revert("Market not open");
+        }
+
         if (_optionSelected >= market.options.length) {
             revert("overflow option");
         }
@@ -114,5 +123,81 @@ contract MarketStorage is Ownable {
             _optionSelected,
             msg.value
         );
+        biddersAddressByOption[_marketId][_optionSelected].push(msg.sender);
+        biddersTotalBalanceByOption[_marketId][_optionSelected] += msg.value;
+    }
+
+    function endMarket(uint256 _marketId, uint128 outcomeOption)
+        public
+        onlyOwner
+    {
+        Market memory market = markets[_marketId];
+        if (marketStates[_marketId] == MarketState.BiddingClosed) {
+            revert("Already closed, ended");
+        }
+        if (outcomeOption >= market.options.length) {
+            revert("overflow option");
+        }
+
+        marketStates[_marketId] = MarketState.BiddingClosed;
+        uint256 totalWinningAmountOfOther = 0;
+        uint256 totalWinningAmountOfYour = 0;
+
+        for (uint128 option = 0; option < market.options.length; option++) {
+            if (outcomeOption != option) {
+                totalWinningAmountOfOther += biddersTotalBalanceByOption[
+                    _marketId
+                ][option];
+            } else {
+                totalWinningAmountOfYour = biddersTotalBalanceByOption[
+                    _marketId
+                ][option];
+            }
+        }
+
+        console.log("totalWinningAmountOfOther", totalWinningAmountOfOther);
+        console.log("totalWinningAmountOfYour", totalWinningAmountOfYour);
+
+        address[] memory winnersAddresses = biddersAddressByOption[_marketId][
+            outcomeOption
+        ];
+
+        for (uint256 i = 0; i < winnersAddresses.length; i++) {
+            Bidder memory bidder = bidders[_marketId][winnersAddresses[i]];
+            console.log("winnersAddresses[]", winnersAddresses[i]);
+
+            uint256 rem = (bidder.amount * totalWinningAmountOfOther) %
+                totalWinningAmountOfYour;
+
+            console.log("rem", rem);
+
+            console.log("bidder.amount", bidder.amount);
+
+            console.log(
+                "bidder.amount * totalWinningAmountOfOther",
+                bidder.amount * totalWinningAmountOfOther
+            );
+
+            console.log(
+                "(bidder.amount * totalWinningAmountOfOther) /totalWinningAmountOfYour",
+                (bidder.amount * totalWinningAmountOfOther) /
+                    totalWinningAmountOfYour
+            );
+
+            console.log(
+                "(bidder.amount * totalWinningAmountOfOther) /totalWinningAmountOfYour + bidder.amount",
+                (bidder.amount * totalWinningAmountOfOther) /
+                    totalWinningAmountOfYour +
+                    bidder.amount
+            );
+
+            uint256 total = (bidder.amount * totalWinningAmountOfOther) /
+                totalWinningAmountOfYour +
+                bidder.amount;
+
+            console.log("total winning", total);
+
+            redeemableAmount[winnersAddresses[i]] = total;
+        }
     }
 }

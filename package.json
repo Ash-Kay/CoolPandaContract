@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "compile": "npx hardhat compile",
+    "test": "npx hardhat test",
     "accounts": "npx hardhat accounts"
   },
   "devDependencies": {
