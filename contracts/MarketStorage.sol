@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.0;
-import "./utils/Ownable.sol";
+pragma solidity ^0.8.4;
 import "hardhat/console.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract MarketStorage is Ownable {
     enum MarketState {
@@ -28,8 +28,6 @@ contract MarketStorage is Ownable {
         MarketType marketType;
         string[] options; // use key for stuff
         string resolverUrl; // Url to website maybe that tells about how market will be resolved
-        // mapping(address => uint256) winnersBalance;
-        // mapping(string => uint256) optionBalance; // Total amount deposited in each option
         // Creator
         address createdBy;
         string creatorImageHash;
@@ -53,23 +51,6 @@ contract MarketStorage is Ownable {
     uint256[] public marketIds;
     uint256 private latestMarketIndex = 0;
 
-    constructor() {
-        string[] memory option = new string[](2);
-        option[0] = "am i right";
-        option[1] = "or am i right";
-
-        createMarket(
-            1,
-            "test q",
-            "test d",
-            MarketType.Binary,
-            option,
-            "xyz.abc",
-            "0x123",
-            123123
-        );
-    }
-
     function createMarket(
         uint256 _marketId,
         string memory _question,
@@ -81,6 +62,8 @@ contract MarketStorage is Ownable {
         uint256 _endTimestamp
     ) public onlyOwner returns (uint256 marketId) {
         latestMarketIndex++;
+
+        //chjeck market end > block.timestamp
 
         markets[latestMarketIndex] = Market(
             _marketId,
