@@ -191,4 +191,10 @@ contract MarketStorage is Ownable {
     {
         return biddersAddressByOption[_marketId][option].length;
     }
+
+    function redeemAmount() public payable {
+        require(redeemableAmount[msg.sender] != 0, "No Funds");
+        redeemableAmount[msg.sender] = 0;
+        payable(msg.sender).transfer(redeemableAmount[msg.sender]);
+    }
 }

@@ -108,4 +108,32 @@ describe("MarketStorage Tests", () => {
 
     expect(winner1Total).to.equal(redeemableAmount1);
   });
+
+  it("MarketStorage redeemAmount", async () => {
+    const [owner, addr1] = await ethers.getSigners();
+
+    const value0 = ethers.utils.parseEther("0.003");
+    const bet0 = await market.addBet(1, 1, {
+      value: value0,
+    });
+    await bet0.wait();
+
+    const value1 = ethers.utils.parseEther("0.005");
+    const market1 = await market.connect(addr1);
+    const bet1 = await market1.addBet(1, 0, {
+      value: value1,
+    });
+    await bet1.wait();
+
+    const market0 = await market.connect(owner);
+    const end = await market0.endMarket(1, 1);
+    await end.wait();
+
+    const accountBalanceBefore = await market.redeemableAmount(owner.address);
+    expect(accountBalanceBefore).to.not.equal(0);
+
+    await market.redeemAmount();
+    const accountBalanceAfter = await market.redeemableAmount(owner.address);
+    expect(accountBalanceAfter).to.equal(0);
+  });
 });
