@@ -1,6 +1,6 @@
 import { expect, assert } from "chai";
 import { ethers } from "hardhat";
-import { MarketStorage, MarketStorage__factory } from "../typechain";
+import { MarketStorage, MarketStorage__factory } from "../typechain-types";
 const marketHolder = {
   marketId: 1,
   question: "WAGMI?",
@@ -55,26 +55,30 @@ describe("MarketStorage Tests", () => {
   it("MarketStorage transactions", async () => {
     const [owner, addr1, addr2, addr3] = await ethers.getSigners();
 
+    const value0 = ethers.utils.parseEther("0.003");
     const bet0 = await market.addBet(1, 1, {
-      value: ethers.utils.parseEther("0.003"),
+      value: value0,
     });
     await bet0.wait();
 
+    const value1 = ethers.utils.parseEther("0.005");
     const market1 = await market.connect(addr1);
     const bet1 = await market1.addBet(1, 0, {
-      value: ethers.utils.parseEther("0.005"),
+      value: value1,
     });
     await bet1.wait();
 
+    const value2 = ethers.utils.parseEther("0.006");
     const market2 = await market.connect(addr2);
     const bet2 = await market2.addBet(1, 0, {
-      value: ethers.utils.parseEther("0.006"),
+      value: value2,
     });
     await bet2.wait();
 
+    const value3 = ethers.utils.parseEther("0.006");
     const market3 = await market.connect(addr3);
     const bet3 = await market3.addBet(1, 1, {
-      value: ethers.utils.parseEther("0.006"),
+      value: value3,
     });
     await bet3.wait();
 
@@ -84,5 +88,24 @@ describe("MarketStorage Tests", () => {
 
     const marketState = await market.marketStates(1);
     expect(marketState).to.equal(1); //1 => BiddingClosed
+
+    const totalWinningAmountOfOther = value1.add(value2);
+    const totalWinningAmountOfYour = value0.add(value3);
+
+    const winner0gain = value0
+      .mul(totalWinningAmountOfOther)
+      .div(totalWinningAmountOfYour);
+    const winner0Total = winner0gain.add(value0);
+    const redeemableAmount0 = await market.redeemableAmount(owner.address);
+
+    expect(winner0Total).to.equal(redeemableAmount0);
+
+    const winner1gain = value3
+      .mul(totalWinningAmountOfOther)
+      .div(totalWinningAmountOfYour);
+    const winner1Total = winner1gain.add(value3);
+    const redeemableAmount1 = await market.redeemableAmount(addr3.address);
+
+    expect(winner1Total).to.equal(redeemableAmount1);
   });
 });

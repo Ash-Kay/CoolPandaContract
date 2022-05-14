@@ -183,4 +183,12 @@ contract MarketStorage is Ownable {
             redeemableAmount[winnersAddresses[i]] = total;
         }
     }
+
+    function getTotalBidderForOption(uint256 _marketId, uint128 option)
+        public
+        view
+        returns (uint256 totalBidderForOption)
+    {
+        return biddersAddressByOption[_marketId][option].length;
+    }
 }
