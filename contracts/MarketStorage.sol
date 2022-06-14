@@ -52,7 +52,6 @@ contract MarketStorage is Ownable {
     uint256 private latestMarketIndex = 0;
 
     function createMarket(
-        uint256 _marketId,
         string memory _question,
         string memory _description,
         MarketType _marketType,
@@ -66,7 +65,7 @@ contract MarketStorage is Ownable {
         //chjeck market end > block.timestamp
 
         markets[latestMarketIndex] = Market(
-            _marketId,
+            latestMarketIndex,
             _question,
             _description,
             _marketType,
@@ -84,6 +83,15 @@ contract MarketStorage is Ownable {
 
     function getTotalMarkets() public view returns (uint256 totalMarkets) {
         return marketIds.length;
+    }
+
+    function getMarketOptions(uint256 _marketId)
+        public
+        view
+        returns (string[] memory totalMarkets)
+    {
+        Market memory market = markets[_marketId];
+        return market.options;
     }
 
     function addBet(uint256 _marketId, uint128 _optionSelected) public payable {
